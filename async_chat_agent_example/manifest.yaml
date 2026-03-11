@@ -1,0 +1,69 @@
+# Agent Manifest Configuration
+# ---------------------------
+# This file defines how your agent should be built and deployed.
+
+# Build Configuration
+# ------------------
+build:
+  context:
+    root: ../  # Keep this as the default root
+
+    include_paths:
+      - async_chat_agent_example
+
+    dockerfile: async_chat_agent_example/Dockerfile
+    dockerignore: async_chat_agent_example/.dockerignore
+
+
+# Local Development Configuration
+# -----------------------------
+local_development:
+  agent:
+    port: 8001  # Port where your local ACP server is running
+    host_address: host.docker.internal
+
+  paths:
+    acp: project/acp.py
+
+
+# Agent Configuration
+# -----------------
+agent:
+  acp_type: sync
+
+  name: anthropic-chat-agent-example
+
+  description: An AgentEx Async Chat Agent with tools and durable state
+
+  temporal:
+    enabled: false
+
+  # Optional: Set Environment variables for running your agent locally as well
+  # as for deployment later on
+  # env:
+  #   SGP_API_KEY: "<YOUR_SGP_API_KEY_HERE>"
+  #   SGP_BASE_URL: "<YOUR_SGP_BASE_URL_HERE>"
+  #   SGP_ACCOUNT_ID: "<YOUR_SGP_ACCOUNT_ID_HERE>"
+
+
+# Deployment Configuration
+# -----------------------
+deployment:
+  image:
+    repository: "" # Update with your container registry
+    tag: "latest"
+
+  global:
+    agent:
+      name: "async-chat-agent-example"
+      description: "An AgentEx Async Chat Agent with tools and durable state"
+
+    replicaCount: 1
+
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"

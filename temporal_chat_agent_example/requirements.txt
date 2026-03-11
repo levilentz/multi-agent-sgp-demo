@@ -1,0 +1,5 @@
+# Install agentex-py from local path
+-e ../../../agentex-py
+
+# Scale GenAI Platform Python SDK
+scale-gp
