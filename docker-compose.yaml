@@ -1,0 +1,131 @@
+# Requires the agentex stack to be running first:
+#   cd /Users/levi.lentz/git/agentex/scale-agentex/agentex && docker compose up -d
+#
+# All services join agentex-network so they can reach:
+#   agentex:5003          — AgentEx API
+#   agentex-temporal:7233 — Temporal (managed by agentex stack)
+#   agentex-redis:6379    — Redis (managed by agentex stack)
+
+networks:
+  agentex-network:
+    external: true
+    name: agentex-network
+
+services:
+
+  # ── Async Chat Agent (port 8001) ─────────────────────────────────────────
+  async-chat-agent:
+    build:
+      context: ./async_chat_agent_example
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    env_file:
+      - async_chat_agent_example/.env
+    environment:
+      - AGENTEX_API_BASE_URL=http://agentex:5003
+      - AGENTEX_BASE_URL=http://agentex:5003
+      - SGP_BASE_URL=http://agentex:5003
+      - AGENT_NAME=anthropic-chat-agent-example
+      - ACP_URL=http://async-chat-agent
+      - ACP_PORT=8000
+      - ACP_TYPE=sync
+      - REDIS_URL=redis://agentex-redis:6379
+    networks:
+      - agentex-network
+    restart: unless-stopped
+
+  # ── LangChain Chat Agent (port 8002) ─────────────────────────────────────
+  langchain-chat-agent:
+    build:
+      context: ./langchain_chat_agent_example
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    env_file:
+      - langchain_chat_agent_example/.env
+    environment:
+      - AGENTEX_API_BASE_URL=http://agentex:5003
+      - AGENTEX_BASE_URL=http://agentex:5003
+      - SGP_BASE_URL=http://agentex:5003
+      - AGENT_NAME=langchain-chat-agent-example
+      - ACP_URL=http://langchain-chat-agent
+      - ACP_PORT=8000
+      - ACP_TYPE=sync
+      - REDIS_URL=redis://agentex-redis:6379
+    networks:
+      - agentex-network
+    restart: unless-stopped
+
+  # ── Sync Chat Agent (port 8003) ───────────────────────────────────────────
+  sync-chat-agent:
+    build:
+      context: ./sync_chat_agent_example
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    env_file:
+      - sync_chat_agent_example/.env
+    environment:
+      - AGENTEX_API_BASE_URL=http://agentex:5003
+      - AGENTEX_BASE_URL=http://agentex:5003
+      - SGP_BASE_URL=http://agentex:5003
+      - AGENT_NAME=basic-chat-agent-example
+      - ACP_URL=http://sync-chat-agent
+      - ACP_PORT=8000
+      - ACP_TYPE=sync
+      - REDIS_URL=redis://agentex-redis:6379
+    networks:
+      - agentex-network
+    restart: unless-stopped
+
+  # ── Temporal Chat Agent — ACP server (port 8004) ──────────────────────────
+  temporal-chat-agent:
+    build:
+      context: ./temporal_chat_agent_example
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    env_file:
+      - temporal_chat_agent_example/.env
+    environment:
+      - AGENTEX_API_BASE_URL=http://agentex:5003
+      - AGENTEX_BASE_URL=http://agentex:5003
+      - SGP_BASE_URL=http://agentex:5003
+      - AGENT_NAME=temporal-chat-agent-example
+      - ACP_URL=http://temporal-chat-agent
+      - ACP_PORT=8000
+      - ACP_TYPE=agentic
+      - REDIS_URL=redis://agentex-redis:6379
+      - TEMPORAL_ADDRESS=agentex-temporal:7233
+      - TEMPORAL_HOST=agentex-temporal
+      - WORKFLOW_NAME=temporal-chat-agent-example
+      - WORKFLOW_TASK_QUEUE=temporal_chat_agent_example_queue
+    networks:
+      - agentex-network
+    restart: unless-stopped
+
+  # ── Temporal Chat Agent — Worker ──────────────────────────────────────────
+  temporal-chat-worker:
+    build:
+      context: ./temporal_chat_agent_example
+      dockerfile: Dockerfile
+    command: ["python", "-m", "project.run_worker"]
+    env_file:
+      - temporal_chat_agent_example/.env
+    environment:
+      - AGENTEX_API_BASE_URL=http://agentex:5003
+      - AGENTEX_BASE_URL=http://agentex:5003
+      - SGP_BASE_URL=http://agentex:5003
+      - AGENT_NAME=temporal-chat-agent-example
+      - ACP_URL=http://temporal-chat-agent
+      - ACP_PORT=8000
+      - ACP_TYPE=agentic
+      - REDIS_URL=redis://agentex-redis:6379
+      - TEMPORAL_ADDRESS=agentex-temporal:7233
+      - TEMPORAL_HOST=agentex-temporal
+      - WORKFLOW_NAME=temporal-chat-agent-example
+      - WORKFLOW_TASK_QUEUE=temporal_chat_agent_example_queue
+    networks:
+      - agentex-network
+    restart: unless-stopped
