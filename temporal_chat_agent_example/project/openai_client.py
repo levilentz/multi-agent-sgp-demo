@@ -1,9 +1,6 @@
 from openai import AsyncOpenAI
 import os
 import httpx
-from dotenv import load_dotenv
-
-load_dotenv()
 
 SGP_API_KEY = os.getenv("SGP_API_KEY", "")
 SGP_BASE_URL = os.getenv("SGP_BASE_URL", "")

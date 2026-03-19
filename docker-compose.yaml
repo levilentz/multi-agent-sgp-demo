@@ -39,7 +39,8 @@ services:
     ports:
       - "8001:8000"
     env_file:
-      - async_chat_agent_example/.env
+      - path: async_chat_agent_example/.env
+        required: false
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
@@ -63,7 +64,8 @@ services:
     ports:
       - "8002:8000"
     env_file:
-      - langchain_chat_agent_example/.env
+      - path: langchain_chat_agent_example/.env
+        required: false
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
@@ -87,7 +89,8 @@ services:
     ports:
       - "8003:8000"
     env_file:
-      - sync_chat_agent_example/.env
+      - path: sync_chat_agent_example/.env
+        required: false
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
@@ -111,7 +114,8 @@ services:
     ports:
       - "8004:8000"
     env_file:
-      - temporal_chat_agent_example/.env
+      - path: temporal_chat_agent_example/.env
+        required: false
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
@@ -138,7 +142,8 @@ services:
       dockerfile: Dockerfile
     command: ["python", "-m", "project.run_worker"]
     env_file:
-      - temporal_chat_agent_example/.env
+      - path: temporal_chat_agent_example/.env
+        required: false
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
