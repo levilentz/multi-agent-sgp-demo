@@ -2,11 +2,11 @@ from openai import AsyncOpenAI
 import os
 import httpx
 
-SGP_API_KEY = os.getenv("SGP_API_KEY")
-SGP_BASE_URL = os.getenv("SGP_BASE_URL")
-if "v5" not in SGP_BASE_URL:
+SGP_API_KEY = os.getenv("SGP_API_KEY", "")
+SGP_BASE_URL = os.getenv("SGP_BASE_URL", "")
+if SGP_BASE_URL and "v5" not in SGP_BASE_URL:
     SGP_BASE_URL = f"{SGP_BASE_URL}/v5/"
-SGP_ACCOUNT_ID = os.getenv("SGP_ACCOUNT_ID", "68ffc1ffc7ff58ffd82e831a")
+SGP_ACCOUNT_ID = os.getenv("SGP_ACCOUNT_ID", "")
 OPENAI_ORG_ID = os.getenv("OPENAI_ORG_ID", None)
 max_retries = os.getenv("OPENAI_MAX_RETRIES", 100)
 timeout = os.getenv("OPENAI_TIMEOUT", 10)

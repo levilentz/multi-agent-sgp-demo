@@ -6,19 +6,19 @@ Four example agents demonstrating different patterns for building on the [AgentE
 
 ## Prerequisites
 
-- Python 3.12+
-- Docker and Docker Compose
-- Node.js (for the AgentEx frontend)
+- Docker and Docker Compose v2.20+
 - `uv` package manager
 
-Install `uv` and other dependencies on macOS/Linux:
+Install `uv` on macOS/Linux:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-brew install docker docker-compose node
+```
 
-# Stop local Redis if running — it conflicts with Docker's Redis
-brew services stop redis
+Stop local Redis if running — it conflicts with Docker's Redis on port 6379:
+
+```bash
+brew services stop redis   # macOS
 ```
 
 Then install the AgentEx SDK:
@@ -29,69 +29,75 @@ uv tool install agentex-sdk
 
 ---
 
-## 1. Clone and Start the AgentEx Stack
+## 1. Clone with Submodules
 
-The agents depend on the AgentEx backend for task routing, state storage, tracing, and Temporal. Clone and start it first:
+The AgentEx backend (`scale-agentex/`) is included as a git submodule. Clone with:
 
 ```bash
-git clone https://github.com/scaleapi/scale-agentex.git
-cd scale-agentex
-./dev.sh
+git clone --recurse-submodules <repo-url>
 ```
 
-`./dev.sh` installs dependencies, starts all Docker services (Postgres, Redis, MongoDB, Temporal), and launches both the backend API and the frontend dev server.
-
-| Service | URL |
-|---|---|
-| **AgentEx UI** | http://localhost:3000 |
-| **AgentEx API** | http://localhost:5003 |
-| Swagger Docs | http://localhost:5003/swagger |
-| Temporal gRPC | `localhost:7233` |
-| Temporal UI | http://localhost:8080 |
-
-Wait until all services are healthy before proceeding:
+Or if already cloned:
 
 ```bash
-./dev.sh status   # all services should show healthy/running
-```
-
-Other useful `dev.sh` commands:
-
-```bash
-./dev.sh stop      # Stop all services
-./dev.sh logs      # View all logs
-./dev.sh restart   # Restart all services
+git submodule update --init --recursive
 ```
 
 ---
 
 ## 2. Configure Each Agent
 
-Each agent directory has a `.env` file. Fill in the required values before building:
+Each agent directory has a `.env` file (not committed to git). Fill in the required values:
 
 ```bash
-# Required in all four .env files
+# Required in all four .env files:
+#   async_chat_agent_example/.env
+#   langchain_chat_agent_example/.env
+#   sync_chat_agent_example/.env
+#   temporal_chat_agent_example/.env
+
 SGP_API_KEY=<your-sgp-api-key>
 SGP_ACCOUNT_ID=<your-sgp-account-id>
-OAI_MODEL=<e.g. openai/gpt-4o or anthropic/claude-3-haiku>
+SGP_BASE_URL=<your-sgp-base-url>   # e.g. https://egp.dashboard.scale.com/api
+OAI_MODEL=<e.g. openai/gpt-4o or anthropic/claude-3-haiku-20240307>
+```
 
-# SGP_BASE_URL is set automatically by docker-compose to http://agentex:5003
-# You only need to set it manually when running agents outside Docker
+The `langchain_chat_agent_example/.env` also needs:
+
+```bash
+SGP_CLIENT_BASE_URL=<same value as SGP_BASE_URL>
+```
+
+`SGP_BASE_URL` is used directly by each agent to call the Scale GenAI Platform. The local AgentEx backend URL (`http://agentex:5003`) is injected separately by docker-compose and does not need to be set manually.
+
+---
+
+## 3. One-time UI Setup
+
+The AgentEx UI is built as a production Next.js bundle inside Docker. Environment variables are baked in at build time, so copy the example env file before the first build:
+
+```bash
+cp scale-agentex/agentex-ui/example.env.development scale-agentex/agentex-ui/.env.local
 ```
 
 ---
 
-## 3. Start the Demo Agents
+## 4. Start Everything
 
-From the root of this repo:
+A single `docker compose up` starts the full stack: AgentEx backend infrastructure (Postgres, Redis, MongoDB, Temporal), the AgentEx UI, and all 4 demo agents.
 
 ```bash
 docker compose up --build -d
 ```
 
-The agents join `agentex-network` automatically and register themselves with the AgentEx backend. Open http://localhost:3000 in your browser — each agent will appear in the AgentEx UI once it's running.
+| Service | URL |
+|---|---|
+| **AgentEx UI** | http://localhost:3000 |
+| **AgentEx API** | http://localhost:5003 |
+| Temporal UI | http://localhost:8080 |
+| Swagger Docs | http://localhost:5003/swagger |
 
-The agents are reachable at:
+The demo agents are reachable at:
 
 | Agent | Host Port | Pattern |
 |---|---|---|
@@ -101,19 +107,14 @@ The agents are reachable at:
 | `temporal-chat-agent` | 8004 | Durable Temporal workflow |
 | `temporal-chat-worker` | — | Temporal worker (no port) |
 
-All agents run on internal port `8000` and are served by uvicorn as `project.acp:acp`.
+The demo agents wait for the AgentEx backend to be healthy before starting, so the full stack may take a minute to come up on first run.
 
 ---
 
-## 4. Tear Down
+## 5. Tear Down
 
 ```bash
-# Stop demo agents (from this repo's root)
 docker compose down
-
-# Stop the full AgentEx stack (from the scale-agentex clone)
-cd scale-agentex
-./dev.sh stop
 ```
 
 ---
@@ -215,7 +216,10 @@ Best for: long-running tasks, tasks that must survive restarts, or complex multi
 
 ```
 rocket-agentex-demo/
-├── docker-compose.yaml
+├── docker-compose.yaml          # Starts full stack via `include` + 4 demo agents
+├── scale-agentex/               # Git submodule — AgentEx backend + UI
+│   ├── agentex/docker-compose.yml   # Included by root compose
+│   └── agentex-ui/              # Next.js frontend
 ├── async_chat_agent_example/
 │   ├── Dockerfile
 │   ├── pyproject.toml
@@ -258,7 +262,6 @@ Each agent can be run directly for faster iteration:
 ```bash
 cd <agent_directory>
 uv sync
-cp .env.example .env   # fill in credentials
 agentex agents run --manifest manifest.yaml
 # or directly:
 uvicorn project.acp:acp --host 0.0.0.0 --port 800X --reload
@@ -270,3 +273,5 @@ For the Temporal agent, run the worker in a second terminal:
 cd temporal_chat_agent_example
 uv run python -m project.run_worker
 ```
+
+When running outside Docker, set `AGENTEX_API_BASE_URL=http://localhost:5003` in your `.env` so the agent can reach the backend.

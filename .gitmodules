@@ -1,0 +1,3 @@
+[submodule "scale-agentex"]
+	path = scale-agentex
+	url = https://github.com/scaleapi/scale-agentex

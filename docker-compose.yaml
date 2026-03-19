@@ -1,17 +1,35 @@
-# Requires the agentex stack to be running first:
-#   cd /Users/levi.lentz/git/agentex/scale-agentex/agentex && docker compose up -d
+# Starts the full AgentEx stack (backend infrastructure + UI) alongside all 4 demo agents.
+# Requires Docker Compose v2.20+ for the `include` directive.
 #
-# All services join agentex-network so they can reach:
-#   agentex:5003          — AgentEx API
-#   agentex-temporal:7233 — Temporal (managed by agentex stack)
-#   agentex-redis:6379    — Redis (managed by agentex stack)
+# One-time setup — NEXT_PUBLIC_ vars are baked into the UI at build time, so copy the env
+# file before running `docker compose up --build` for the first time:
+#
+#   cp scale-agentex/agentex-ui/example.env.development scale-agentex/agentex-ui/.env.local
+
+include:
+  - ./scale-agentex/agentex/docker-compose.yml
 
 networks:
   agentex-network:
-    external: true
     name: agentex-network
 
 services:
+
+  # ── AgentEx UI (port 3000) ────────────────────────────────────────────────
+  agentex-ui:
+    build:
+      context: ./scale-agentex
+      dockerfile: agentex-ui/Dockerfile
+      args:
+        SOURCE_DIR: agentex-ui
+    ports:
+      - "3000:3000"
+    networks:
+      - agentex-network
+    depends_on:
+      agentex:
+        condition: service_healthy
+    restart: unless-stopped
 
   # ── Async Chat Agent (port 8001) ─────────────────────────────────────────
   async-chat-agent:
@@ -25,7 +43,6 @@ services:
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
-      - SGP_BASE_URL=http://agentex:5003
       - AGENT_NAME=anthropic-chat-agent-example
       - ACP_URL=http://async-chat-agent
       - ACP_PORT=8000
@@ -33,6 +50,9 @@ services:
       - REDIS_URL=redis://agentex-redis:6379
     networks:
       - agentex-network
+    depends_on:
+      agentex:
+        condition: service_healthy
     restart: unless-stopped
 
   # ── LangChain Chat Agent (port 8002) ─────────────────────────────────────
@@ -47,7 +67,6 @@ services:
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
-      - SGP_BASE_URL=http://agentex:5003
       - AGENT_NAME=langchain-chat-agent-example
       - ACP_URL=http://langchain-chat-agent
       - ACP_PORT=8000
@@ -55,6 +74,9 @@ services:
       - REDIS_URL=redis://agentex-redis:6379
     networks:
       - agentex-network
+    depends_on:
+      agentex:
+        condition: service_healthy
     restart: unless-stopped
 
   # ── Sync Chat Agent (port 8003) ───────────────────────────────────────────
@@ -69,7 +91,6 @@ services:
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
-      - SGP_BASE_URL=http://agentex:5003
       - AGENT_NAME=basic-chat-agent-example
       - ACP_URL=http://sync-chat-agent
       - ACP_PORT=8000
@@ -77,6 +98,9 @@ services:
       - REDIS_URL=redis://agentex-redis:6379
     networks:
       - agentex-network
+    depends_on:
+      agentex:
+        condition: service_healthy
     restart: unless-stopped
 
   # ── Temporal Chat Agent — ACP server (port 8004) ──────────────────────────
@@ -91,7 +115,6 @@ services:
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
-      - SGP_BASE_URL=http://agentex:5003
       - AGENT_NAME=temporal-chat-agent-example
       - ACP_URL=http://temporal-chat-agent
       - ACP_PORT=8000
@@ -103,6 +126,9 @@ services:
       - WORKFLOW_TASK_QUEUE=temporal_chat_agent_example_queue
     networks:
       - agentex-network
+    depends_on:
+      agentex:
+        condition: service_healthy
     restart: unless-stopped
 
   # ── Temporal Chat Agent — Worker ──────────────────────────────────────────
@@ -116,7 +142,6 @@ services:
     environment:
       - AGENTEX_API_BASE_URL=http://agentex:5003
       - AGENTEX_BASE_URL=http://agentex:5003
-      - SGP_BASE_URL=http://agentex:5003
       - AGENT_NAME=temporal-chat-agent-example
       - ACP_URL=http://temporal-chat-agent
       - ACP_PORT=8000
@@ -128,4 +153,7 @@ services:
       - WORKFLOW_TASK_QUEUE=temporal_chat_agent_example_queue
     networks:
       - agentex-network
+    depends_on:
+      agentex:
+        condition: service_healthy
     restart: unless-stopped
