@@ -5,7 +5,8 @@ from agentex.lib.sdk.fastacp.fastacp import FastACP
 from agentex.lib.types.acp import SendMessageParams
 from agentex.lib.utils.model_utils import BaseModel
 from agentex.types.text_content import TextContent
-from agents import Agent, Runner, set_default_openai_client, set_default_openai_api
+from agents import Agent, Runner, set_default_openai_client
+from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from agentex.lib.core.tracing.tracing_processor_manager import (
     add_tracing_processor_config,
 )
@@ -16,7 +17,6 @@ from project.openai_client import openai_client, OAI_MODEL
 from project.tools import ALL_TOOLS
 
 set_default_openai_client(openai_client)
-# set_default_openai_api("chat_completions")
 
 add_tracing_processor_config(
     SGPTracingProcessorConfig(
@@ -32,7 +32,7 @@ acp = FastACP.create(acp_type="sync")
 # Create the agent with the tools from tools.py
 chat_agent = Agent(
     name="ChatAgent",
-    model=OAI_MODEL,
+    model=OpenAIChatCompletionsModel(model=OAI_MODEL, openai_client=openai_client),
     instructions=(
         "You are a helpful assistant. "
         "You have access to tools that can help you answer the user's questions. "

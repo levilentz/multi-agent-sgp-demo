@@ -6,9 +6,7 @@ from agentex.lib.core.temporal.activities import get_all_activities
 from agentex.lib.core.temporal.workers.worker import AgentexWorker
 from agentex.lib.core.temporal.plugins.openai_agents.hooks.activities import stream_lifecycle_content
 from agentex.lib.core.temporal.plugins.openai_agents.interceptors.context_interceptor import ContextInterceptor
-from agentex.lib.core.temporal.plugins.openai_agents.models.temporal_streaming_model import (
-    TemporalStreamingModelProvider,
-)
+from project.model_provider import ChatCompletionsModelProvider
 from agentex.lib.utils.logging import make_logger
 from agentex.lib.utils.debug import setup_debug_if_enabled
 from agentex.lib.environment_variables import EnvironmentVariables
@@ -45,7 +43,7 @@ async def main():
     ]
 
     context_interceptor = ContextInterceptor()
-    streaming_model_provider = TemporalStreamingModelProvider(openai_client=openai_client)
+    streaming_model_provider = ChatCompletionsModelProvider(openai_client=openai_client)
 
     worker = AgentexWorker(
         task_queue=task_queue_name,

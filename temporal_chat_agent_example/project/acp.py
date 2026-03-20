@@ -5,9 +5,7 @@ from datetime import timedelta
 
 from temporalio.contrib.openai_agents import OpenAIAgentsPlugin, ModelActivityParameters
 from agentex.lib.core.temporal.plugins.openai_agents.interceptors.context_interceptor import ContextInterceptor
-from agentex.lib.core.temporal.plugins.openai_agents.models.temporal_streaming_model import (
-    TemporalStreamingModelProvider,
-)
+from project.model_provider import ChatCompletionsModelProvider
 from agentex.lib.sdk.fastacp.fastacp import FastACP
 from agentex.lib.types.fastacp import TemporalACPConfig
 from agents import set_default_openai_client, set_default_openai_api
@@ -50,7 +48,7 @@ if os.getenv("AGENTEX_DEBUG_ENABLED") == "true":
 # === END DEBUG SETUP ===
 
 context_interceptor = ContextInterceptor()
-streaming_model_provider = TemporalStreamingModelProvider(openai_client=openai_client)
+streaming_model_provider = ChatCompletionsModelProvider(openai_client=openai_client)
 
 
 # Create the ACP server

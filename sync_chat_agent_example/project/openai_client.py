@@ -12,7 +12,7 @@ max_retries = os.getenv("OPENAI_MAX_RETRIES", 100)
 timeout = os.getenv("OPENAI_TIMEOUT", 10)
 
 MAX_TOKENS = os.environ.get("OAI_MAX_TOKENS", 10000)
-OAI_MODEL = os.environ.get("OAI_MODEL", "openai/openai/gpt-4o")
+OAI_MODEL = os.environ.get("OAI_MODEL")
 TEMPERATURE_B100 = int(os.environ.get("OAI_TEMPERATURE_B100", 0))
 
 # Check if running in local development mode

@@ -8,7 +8,7 @@ if SGP_BASE_URL and "v5" not in SGP_BASE_URL:
     SGP_BASE_URL = f"{SGP_BASE_URL}/v5/"
 SGP_ACCOUNT_ID = os.getenv("SGP_ACCOUNT_ID", "")
 
-OAI_MODEL = os.environ.get("OAI_MODEL", "openai/gpt-4")
+OAI_MODEL = os.environ.get("OAI_MODEL")
 
 SGP_HEADERS = {
     "x-api-key": SGP_API_KEY,

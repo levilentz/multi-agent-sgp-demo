@@ -6,7 +6,6 @@ These activities are registered as tools on the OpenAI Agent via
 durable, retriable Temporal activity execution.
 """
 
-from pydantic import BaseModel, Field
 from temporalio import activity
 
 from agentex.lib import adk
@@ -17,23 +16,21 @@ from agentex.types.text_content import TextContent
 # ACTIVITY: Add Numbers
 # ============================================================================
 
-class AddNumbersInput(BaseModel):
-    """Input for adding two numbers together."""
-
-    num1: float = Field(description="The first number to add")
-    num2: float = Field(description="The second number to add")
-
-
 @activity.defn
-async def add_numbers(input: AddNumbersInput) -> str:
-    """Add two numbers together and return the result as a string."""
-    result = input.num1 + input.num2
+async def add_numbers(num1: float, num2: float) -> str:
+    """Add two numbers together and return the result as a string.
+
+    Args:
+        num1: The first number to add.
+        num2: The second number to add.
+    """
+    result = num1 + num2
     return str({
         "operation": "addition",
-        "num1": input.num1,
-        "num2": input.num2,
+        "num1": num1,
+        "num2": num2,
         "result": result,
-        "message": f"{input.num1} + {input.num2} = {result}",
+        "message": f"{num1} + {num2} = {result}",
     })
 
 
@@ -44,34 +41,20 @@ async def add_numbers(input: AddNumbersInput) -> str:
 LANGCHAIN_AGENT_NAME = "langchain-chat-agent-example"
 
 
-class CallLangchainAgentInput(BaseModel):
-    """Input for delegating a query to the LangChain agent."""
-
-    query: str = Field(
-        description=(
-            "The question or request to send to the LangChain agent. "
-            "Use this tool when you need weather information or any other "
-            "capability that the LangChain agent specialises in."
-        )
-    )
-
-
 @activity.defn
-async def call_langchain_agent(input: CallLangchainAgentInput) -> str:
-    """
-    Delegate a query to the LangChain agent running in Agentex via ACP.
+async def call_langchain_agent(query: str) -> str:
+    """Delegate a query to the LangChain agent running in Agentex via ACP.
 
-    The activity:
-    1. Creates a new task on the LangChain agent.
-    2. Sends the query as a message and waits for the synchronous response.
-    3. Extracts and returns the text content from the reply messages.
+    The activity creates a new task on the LangChain agent, sends the query,
+    waits for the synchronous response, and returns the text content.
+    Because this is a Temporal activity it is durable and retriable.
 
-    Because this is a Temporal activity it is durable and retriable — if the
-    worker crashes mid-call the activity will be replayed automatically.
+    Args:
+        query: The question or request to send to the LangChain agent.
     """
     logger = activity.logger
 
-    logger.info(f"Calling LangChain agent with query: {input.query!r}")
+    logger.info(f"Calling LangChain agent with query: {query!r}")
 
     # 1. Create a new task on the LangChain agent
     task = await adk.acp.create_task(agent_name=LANGCHAIN_AGENT_NAME)
@@ -81,7 +64,7 @@ async def call_langchain_agent(input: CallLangchainAgentInput) -> str:
     messages = await adk.acp.send_message(
         agent_name=LANGCHAIN_AGENT_NAME,
         task_id=task.id,
-        content=TextContent(author="user", content=input.query),
+        content=TextContent(author="user", content=query),
     )
     logger.info(f"Received {len(messages) if messages else 0} message(s) from LangChain agent")
 

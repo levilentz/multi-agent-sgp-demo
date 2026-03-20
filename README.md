@@ -47,15 +47,11 @@ git submodule update --init --recursive
 
 ## 2. Configure Each Agent
 
-A root `.env.example` contains the required variables. Copy it into each agent directory and fill in your credentials:
+Copy `.env.example` to `.env` at the repo root and fill in your credentials:
 
 ```bash
-for dir in async_chat_agent_example langchain_chat_agent_example sync_chat_agent_example temporal_chat_agent_example; do
-  cp .env.example $dir/.env
-done
+cp .env.example .env
 ```
-
-Then edit each `.env` with your values:
 
 ```bash
 SGP_API_KEY=<your-sgp-api-key>
@@ -64,9 +60,7 @@ SGP_BASE_URL=<your-sgp-base-url>   # e.g. https://egp.dashboard.scale.com/api
 OAI_MODEL=<e.g. openai/gpt-4o or anthropic/claude-3-haiku-20240307>
 ```
 
-The `langchain_chat_agent_example/.env` also needs `SGP_CLIENT_BASE_URL` set to the same value as `SGP_BASE_URL`.
-
-`SGP_BASE_URL` is used by each agent to call the Scale GenAI Platform. The local AgentEx backend URL (`http://agentex:5003`) is injected separately by docker-compose and does not need to be set manually.
+All agents share this single file. The local AgentEx backend URL (`http://agentex:5003`) is injected separately by docker-compose and does not need to be set here.
 
 ---
 

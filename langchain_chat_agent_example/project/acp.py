@@ -17,9 +17,6 @@ from agentex.lib.utils.logging import make_logger
 from agentex.types.task_message_content import TaskMessageContent
 from agentex.types.task_message_delta import TextDelta
 from agentex.types.task_message_update import TaskMessageUpdate
-from dotenv import load_dotenv
-
-load_dotenv()
 import os
 
 from project.graph import create_graph
@@ -31,7 +28,7 @@ add_tracing_processor_config(
     SGPTracingProcessorConfig(
         sgp_api_key=os.environ.get("SGP_API_KEY", ""),
         sgp_account_id=os.environ.get("SGP_ACCOUNT_ID", ""),
-        sgp_base_url=os.environ.get("SGP_CLIENT_BASE_URL", ""),
+        sgp_base_url=os.environ.get("SGP_BASE_URL", ""),
     ))
 
 # Create ACP server

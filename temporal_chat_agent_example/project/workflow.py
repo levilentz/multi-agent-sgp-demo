@@ -156,8 +156,8 @@ class TemporalChatAgentExampleWorkflow(BaseWorkflow):
 
                 logger.info(f"Turn {self._state.turn_number}: Starting Runner.run()")
 
-                # TemporalStreamingModelProvider (configured in acp.py + run_worker.py)
-                # streams text tokens back to the UI as they are generated.
+                # ChatCompletionsModelProvider returns a complete response; we send
+                # it to the UI via adk.messages.create() after Runner.run() finishes.
                 # TemporalStreamingHooks handles tool-call and handoff events.
                 result = await Runner.run(agent, normalized_input, hooks=temporal_streaming_hooks)
 
@@ -169,6 +169,13 @@ class TemporalChatAgentExampleWorkflow(BaseWorkflow):
                 if result.final_output:
                     self._state.input_list.append(
                         {"role": "assistant", "content": str(result.final_output)}
+                    )
+                    await adk.messages.create(
+                        task_id=params.task.id,
+                        content=TextContent(
+                            author="agent",
+                            content=str(result.final_output),
+                        ),
                     )
 
                 if span:
