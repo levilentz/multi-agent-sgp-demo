@@ -128,7 +128,6 @@ services:
       - TEMPORAL_HOST=agentex-temporal
       - WORKFLOW_NAME=temporal-chat-agent-example
       - WORKFLOW_TASK_QUEUE=temporal_chat_agent_example_queue
-      - openai/claude-3-haiku-20240307
     networks:
       - agentex-network
     depends_on:
@@ -157,7 +156,6 @@ services:
       - TEMPORAL_HOST=agentex-temporal
       - WORKFLOW_NAME=temporal-chat-agent-example
       - WORKFLOW_TASK_QUEUE=temporal_chat_agent_example_queue
-      - OAI_MODEL=openai/claude-3-haiku-20240307
     networks:
       - agentex-network
     depends_on:
