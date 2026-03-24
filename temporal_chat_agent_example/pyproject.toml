@@ -13,6 +13,8 @@ dependencies = [
     "openai",
     "openai-agents",
     "temporalio[openai-agents]",
+    "opentelemetry-api",
+    "opentelemetry-sdk",
 ]
 
 [project.optional-dependencies]

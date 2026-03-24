@@ -11,6 +11,8 @@ dependencies = [
     "agentex-sdk>=0.5.3",
     "scale-gp",
     "openai",
+    "opentelemetry-api",
+    "opentelemetry-sdk",
 ]
 
 [project.optional-dependencies]
