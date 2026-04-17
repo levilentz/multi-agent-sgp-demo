@@ -1,0 +1,40 @@
+# Agent Manifest Configuration
+build:
+  context:
+    root: ../
+    include_paths:
+      - multi_model_chat_agent
+    dockerfile: multi_model_chat_agent/Dockerfile
+    dockerignore: multi_model_chat_agent/.dockerignore
+
+local_development:
+  agent:
+    port: 8005
+    host_address: host.docker.internal
+
+  paths:
+    acp: project/acp.py
+
+agent:
+  acp_type: sync
+  name: multi-model-chat-agent
+  description: A multi-model agent that queries GPT-4o, GPT-4o-mini, and Claude in parallel
+  temporal:
+    enabled: false
+
+deployment:
+  image:
+    repository: ""
+    tag: "latest"
+  global:
+    agent:
+      name: "multi-model-chat-agent"
+      description: "A multi-model agent that queries GPT-4o, GPT-4o-mini, and Claude in parallel"
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"

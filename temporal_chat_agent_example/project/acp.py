@@ -5,6 +5,10 @@ from datetime import timedelta
 
 from temporalio.contrib.openai_agents import OpenAIAgentsPlugin, ModelActivityParameters
 from agentex.lib.core.temporal.plugins.openai_agents.interceptors.context_interceptor import ContextInterceptor
+from agentex.lib.core.tracing.tracing_processor_manager import (
+    add_tracing_processor_config,
+)
+from agentex.lib.types.tracing import SGPTracingProcessorConfig
 from project.model_provider import ChatCompletionsModelProvider
 from agentex.lib.sdk.fastacp.fastacp import FastACP
 from agentex.lib.types.fastacp import TemporalACPConfig
@@ -14,6 +18,14 @@ from project.openai_client import openai_client
 
 set_default_openai_client(openai_client)
 set_default_openai_api("chat_completions")
+
+add_tracing_processor_config(
+    SGPTracingProcessorConfig(
+        sgp_api_key=os.environ.get("SGP_API_KEY", ""),
+        sgp_account_id=os.environ.get("SGP_ACCOUNT_ID", ""),
+        sgp_base_url=os.environ.get("SGP_BASE_URL", ""),
+    )
+)
 
 
 # === DEBUG SETUP (AgentEx CLI Debug Support) ===

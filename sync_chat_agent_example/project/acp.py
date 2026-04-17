@@ -67,10 +67,38 @@ async def handle_message_send(params: SendMessageParams):
     state.turn_number += 1
     state.input_list.append({"role": "user", "content": user_text})
 
-    # Run the agent with the full conversation history
-    result = await Runner.run(chat_agent, input=state.input_list)
+    # Wrap Runner.run in an adk tracing span so the SGPTracingProcessor
+    # picks up the LLM call and ships it to SGP (same pattern as the
+    # LangChain agent's adk.tracing.span usage).
+    async with adk.tracing.span(
+        trace_id=task_id,
+        name="message",
+        input={"message": user_text, "model": OAI_MODEL},
+        data={"__span_type__": "COMPLETION"},
+    ) as turn_span:
+        result = await Runner.run(chat_agent, input=state.input_list)
+        assistant_reply = result.final_output
 
-    assistant_reply = result.final_output
+        # Aggregate token usage across all LLM calls in this turn so the
+        # SGP cost dashboard can read operation_output.usage.prompt_tokens
+        # and operation_output.usage.completion_tokens.
+        total_input = 0
+        total_output = 0
+        for resp in result.raw_responses:
+            total_input += resp.usage.input_tokens
+            total_output += resp.usage.output_tokens
+
+        if turn_span:
+            turn_span.output = {
+                "final_output": assistant_reply,
+                "model": OAI_MODEL,
+                "usage": {
+                    "prompt_tokens": total_input,
+                    "completion_tokens": total_output,
+                    "total_tokens": total_input + total_output,
+                },
+            }
+
     state.input_list.append({"role": "assistant", "content": assistant_reply})
 
     # Persist updated state for the next turn

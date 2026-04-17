@@ -48,12 +48,27 @@ async def handle_message_send(params: SendMessageParams) -> TextContent:
     async with adk.tracing.span(
         trace_id=params.task.id,
         name="handle_message",
-        input={"user_text": user_text},
+        input={"user_text": user_text, "model": OAI_MODEL},
+        data={"__span_type__": "COMPLETION"},
     ) as span:
         result = await Runner.run(chat_agent, input=user_text)
         assistant_reply = result.final_output
 
+        total_input = 0
+        total_output = 0
+        for resp in result.raw_responses:
+            total_input += resp.usage.input_tokens
+            total_output += resp.usage.output_tokens
+
         if span:
-            span.output = {"final_output": assistant_reply}
+            span.output = {
+                "final_output": assistant_reply,
+                "model": OAI_MODEL,
+                "usage": {
+                    "prompt_tokens": total_input,
+                    "completion_tokens": total_output,
+                    "total_tokens": total_input + total_output,
+                },
+            }
 
     return TextContent(author="agent", content=assistant_reply, format="markdown")

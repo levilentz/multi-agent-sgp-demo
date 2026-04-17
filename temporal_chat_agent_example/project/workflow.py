@@ -125,7 +125,7 @@ class TemporalChatAgentExampleWorkflow(BaseWorkflow):
             async with adk.tracing.span(
                 trace_id=params.task.id,
                 name=f"Turn {self._state.turn_number}",
-                input=turn_input.model_dump(),
+                input={**turn_input.model_dump(), "model": OAI_MODEL},
             ) as span:
                 self._parent_span_id = span.id if span else None
 
@@ -178,9 +178,24 @@ class TemporalChatAgentExampleWorkflow(BaseWorkflow):
                         ),
                     )
 
+                # Aggregate token usage across all LLM calls in this turn so the
+                # SGP cost dashboard can read usage.prompt_tokens / completion_tokens.
+                total_input = 0
+                total_output = 0
+                for resp in result.raw_responses:
+                    total_input += resp.usage.input_tokens
+                    total_output += resp.usage.output_tokens
+
                 if span:
-                    turn_output = TurnOutput(final_output=result.final_output)
-                    span.output = turn_output.model_dump()
+                    span.output = {
+                        "final_output": result.final_output,
+                        "model": OAI_MODEL,
+                        "usage": {
+                            "prompt_tokens": total_input,
+                            "completion_tokens": total_output,
+                            "total_tokens": total_input + total_output,
+                        },
+                    }
 
             logger.info(f"Turn {self._state.turn_number}: Completed successfully")
 

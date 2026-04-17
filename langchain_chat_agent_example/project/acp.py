@@ -19,7 +19,7 @@ from agentex.types.task_message_delta import TextDelta
 from agentex.types.task_message_update import TaskMessageUpdate
 import os
 
-from project.graph import create_graph
+from project.graph import create_graph, MODEL_NAME
 
 logger = make_logger(__name__)
 
@@ -46,6 +46,26 @@ async def get_graph():
     return _graph
 
 
+async def _stream_with_usage_tracking(raw_stream, usage_totals: dict):
+    """Wrap a LangGraph astream() to pass events through and extract usage metadata.
+
+    AI messages in "updates" events carry usage_metadata with input_tokens and
+    output_tokens. This wrapper accumulates those into usage_totals while
+    yielding every event unchanged so convert_langgraph_to_agentex_events
+    still receives the full stream.
+    """
+    async for event_type, event_data in raw_stream:
+        if event_type == "updates" and isinstance(event_data, dict):
+            for node_name, state_update in event_data.items():
+                if node_name == "agent" and isinstance(state_update, dict):
+                    for msg in state_update.get("messages", []):
+                        meta = getattr(msg, "usage_metadata", None)
+                        if meta:
+                            usage_totals["input_tokens"] += meta.get("input_tokens", 0)
+                            usage_totals["output_tokens"] += meta.get("output_tokens", 0)
+        yield event_type, event_data
+
+
 @acp.on_message_send
 async def handle_message_send(
     params: SendMessageParams,
@@ -61,7 +81,7 @@ async def handle_message_send(
     async with adk.tracing.span(
         trace_id=thread_id,
         name="message",
-        input={"message": user_message},
+        input={"message": user_message, "model": MODEL_NAME},
         data={"__span_type__": "AGENT_WORKFLOW"},
     ) as turn_span:
         callback = create_langgraph_tracing_handler(
@@ -69,7 +89,7 @@ async def handle_message_send(
             parent_span_id=turn_span.id if turn_span else None,
         )
 
-        stream = graph.astream(
+        raw_stream = graph.astream(
             {"messages": [{"role": "user", "content": user_message}]},
             config={
                 "configurable": {"thread_id": thread_id},
@@ -78,8 +98,11 @@ async def handle_message_send(
             stream_mode=["messages", "updates"],
         )
 
+        usage_totals = {"input_tokens": 0, "output_tokens": 0}
+        tracked_stream = _stream_with_usage_tracking(raw_stream, usage_totals)
+
         final_text = ""
-        async for event in convert_langgraph_to_agentex_events(stream):
+        async for event in convert_langgraph_to_agentex_events(tracked_stream):
             # Accumulate text deltas for span output
             delta = getattr(event, "delta", None)
             if isinstance(delta, TextDelta) and delta.text_delta:
@@ -87,4 +110,12 @@ async def handle_message_send(
             yield event
 
         if turn_span:
-            turn_span.output = {"final_output": final_text}
+            turn_span.output = {
+                "final_output": final_text,
+                "model": MODEL_NAME,
+                "usage": {
+                    "prompt_tokens": usage_totals["input_tokens"],
+                    "completion_tokens": usage_totals["output_tokens"],
+                    "total_tokens": usage_totals["input_tokens"] + usage_totals["output_tokens"],
+                },
+            }
