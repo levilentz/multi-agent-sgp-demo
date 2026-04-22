@@ -21,6 +21,9 @@ import os
 
 from project.graph import create_graph, MODEL_NAME
 
+# Import profiling AFTER heavy deps so tracemalloc doesn't trace every import allocation.
+from project.profiling import setup_profiling
+
 logger = make_logger(__name__)
 
 # Register the Agentex tracing processor so spans are shipped to the backend
@@ -33,6 +36,9 @@ add_tracing_processor_config(
 
 # Create ACP server
 acp = FastACP.create(acp_type="sync")
+
+# Attach memory profiling debug endpoints (/debug/memory, /debug/memory/reset)
+setup_profiling(acp)
 
 # Compiled graph (lazy-initialized on first request)
 _graph = None
@@ -63,6 +69,10 @@ async def _stream_with_usage_tracking(raw_stream, usage_totals: dict):
                         if meta:
                             usage_totals["input_tokens"] += meta.get("input_tokens", 0)
                             usage_totals["output_tokens"] += meta.get("output_tokens", 0)
+                            input_details = meta.get("input_token_details", {})
+                            output_details = meta.get("output_token_details", {})
+                            usage_totals["cached_tokens"] += input_details.get("cache_read", 0)
+                            usage_totals["reasoning_tokens"] += output_details.get("reasoning", 0)
         yield event_type, event_data
 
 
@@ -98,7 +108,7 @@ async def handle_message_send(
             stream_mode=["messages", "updates"],
         )
 
-        usage_totals = {"input_tokens": 0, "output_tokens": 0}
+        usage_totals = {"input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
         tracked_stream = _stream_with_usage_tracking(raw_stream, usage_totals)
 
         final_text = ""
@@ -117,5 +127,7 @@ async def handle_message_send(
                     "prompt_tokens": usage_totals["input_tokens"],
                     "completion_tokens": usage_totals["output_tokens"],
                     "total_tokens": usage_totals["input_tokens"] + usage_totals["output_tokens"],
+                    "cached_tokens": usage_totals["cached_tokens"],
+                    "reasoning_tokens": usage_totals["reasoning_tokens"],
                 },
             }

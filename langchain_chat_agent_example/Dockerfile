@@ -28,6 +28,12 @@ WORKDIR /app
 
 RUN uv pip install --system .
 
+# Install patched local packages over the PyPI versions
+COPY _local_sgp /app/_local_sgp
+COPY _local_agentex /app/_local_agentex
+RUN uv pip install --system --no-deps /app/_local_sgp && \
+    uv pip install --system --no-deps /app/_local_agentex
+
 COPY project /app/project
 
 ENV PYTHONPATH=/app
